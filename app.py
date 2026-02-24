@@ -11,7 +11,7 @@ from datetime import datetime
 
 # --- 1. Configuration ---
 TELEGRAM_TOKEN = "8297726717:AAGaP7JO32k5ei_z3zLmG5WZlAD6-Z7J2v4"
-OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
