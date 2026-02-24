@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الباركود</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2ecc71;
+            --bg-color: #f8f9fa;
+            --text-color: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 30px; }
+
+        .section {
+            border: 1px solid #eee;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* تنسيق الأزرار */
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-generate {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-generate:hover { background-color: #357abd; }
+
+        .btn-decode {
+            background-color: var(--secondary-color);
+            color: white;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .btn-decode:hover { background-color: #27ae60; }
+
+        /* منطقة الرفع */
+        .upload-wrapper {
+            border: 2px dashed #cbd5e0;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .upload-wrapper:hover { border-color: var(--primary-color); }
+
+        #preview-img {
+            max-width: 200px;
+            margin: 15px auto;
+            display: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        #result-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f1f2f6;
+            border-radius: 8px;
+            display: none;
+        }
+
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>نظام الباركود الذكي 🚀</h1>
+
+    <div class="section">
+        <div class="section-title">📦 توليد وتصدير الباركود</div>
+        <p>اضغط على الزر أدناه لتوليد 10 أكواد باركود (Code 128) وتحميلها كملف PDF جاهز للطباعة.</p>
+        <button onclick="downloadBarcodes()" class="btn btn-generate">إنشاء وتحميل PDF</button>
+    </div>
+
+    <div class="section">
+        <div class="section-title">🔍 قراءة باركود من صورة</div>
+        <form id="upload-form">
+            <label for="file-input" class="upload-wrapper">
+                <div id="upload-text">اسحب الصورة هنا أو اضغط للاختيار</div>
+                <input type="file" id="file-input" accept="image/*" onchange="previewFile()">
+                <img id="preview-img" src="" alt="معاينة">
+            </label>
+            <button type="button" onclick="processBarcode()" class="btn btn-decode">تحليل الصورة الآن</button>
+        </form>
+
+        <div id="result-area">
+            <strong>النتائج:</strong>
+            <div id="results-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. وظيفة تحميل الـ PDF
+    function downloadBarcodes() {
+        const btn = document.querySelector('.btn-generate');
+        btn.innerText = "جاري التحميل...";
+        window.location.href = '/generate';
+        setTimeout(() => { btn.innerText = "إنشاء وتحميل PDF"; }, 3000);
+    }
+
+    // 2. معاينة الصورة المرفوعة
+    function previewFile() {
+        const file = document.getElementById('file-input').files[0];
+        const preview = document.getElementById('preview-img');
+        const uploadText = document.getElementById('upload-text');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                uploadText.style.display = 'none';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // 3. إرسال الصورة للسيرفر وفك تشفيرها
+    async function processBarcode() {
+        const fileInput = document.getElementById('file-input');
+        const resultsDiv = document.getElementById('result-area');
+        const listDiv = document.getElementById('results-list');
+
+        if (!fileInput.files[0]) {
+            alert("من فضلك اختر صورة أولاً!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        listDiv.innerHTML = "جاري المعالجة... ⏳";
+        resultsDiv.style.display = 'block';
+
+        try {
+            const response = await fetch('/decode', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.barcodes) {
+                let html = '<ul style="list-style: none; padding: 0; margin-top: 10px;">';
+                data.barcodes.forEach(b => {
+                    html += `<li style="margin-bottom: 10px; padding: 10px; background: white; border-right: 4px solid #2ecc71;">
+                                <strong>النوع:</strong> ${b.type} <br>
+                                <strong>المحتوى:</strong> <code style="color: #e74c3c;">${b.data}</code>
+                             </li>`;
+                });
+                html += '</ul>';
+                listDiv.innerHTML = html;
+            } else {
+                listDiv.innerHTML = `<span style="color: #e67e22;">${data.message}</span>`;
+            }
+        } catch (error) {
+            listDiv.innerHTML = `<span style="color: #c0392b;">حدث خطأ في الاتصال بالسيرفر!</span>`;
+        }
+    }
+</script>
+
+</body>
+</html>
